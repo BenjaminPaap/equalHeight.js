@@ -16,6 +16,7 @@
         calculateEqualHeights: function() {
             var self = this;
             var equalHeightGroups = {};
+            var nesting = null;
 
             // Responsive float-Fix
             self.elements.height(1);
@@ -23,34 +24,52 @@
             // Group Elements by offset top
             self.elements.each(function() {
                 var y = $(this).offset().top;
+                nesting = $(this).parents().length;
 
-                equalHeightGroups[y] = equalHeightGroups[y] || $();
-                equalHeightGroups[y] = equalHeightGroups[y].add(this);
+                equalHeightGroups[nesting] = equalHeightGroups[nesting] || $();
+                equalHeightGroups[nesting][y] = equalHeightGroups[nesting][y] || $();
+                equalHeightGroups[nesting][y] = equalHeightGroups[nesting][y].add(this);
             });
 
-            $.each(equalHeightGroups, function(y, elements) {
-                var height = 0;
+            var keys = [];
+            for (nesting in equalHeightGroups) {
+                if (equalHeightGroups.hasOwnProperty(nesting)) {
+                    keys.push(nesting);
+                }
+            }
 
-                // Reset element height to `auto`
-                elements.css('height', 'auto');
+            keys.sort().reverse();
 
-                // Find the max height
-                elements.each(function() {
-                    var outerHeight = $(this).outerHeight();
+            for (nesting = 0; nesting < keys.length; nesting ++) {
+                var group = equalHeightGroups[keys[nesting]];
 
-                    if (outerHeight > height) {
-                        height = outerHeight;
+                for (var y in group) {
+                    if (group.hasOwnProperty(y)) {
+                        var elements = group[y];
+                        var height = 0;
+
+                        // Reset element height to `auto`
+                        elements.css('height', 'auto');
+
+                        // Find the max height
+                        elements.each(function () {
+                            var outerHeight = $(this).outerHeight();
+
+                            if (outerHeight > height) {
+                                height = outerHeight;
+                            }
+                        });
+
+                        // Calculate the new height of each element (height without padding and border)
+                        elements.each(function () {
+                            var self = $(this),
+                                negative = self.outerHeight() - self.height();
+
+                            self.height(height - negative);
+                        });
                     }
-                });
-
-                // Calculate the new height of each element (height without padding and border)
-                elements.each(function() {
-                    var self = $(this),
-                        negative = self.outerHeight() - self.height();
-
-                    self.height(height - negative);
-                });
-            });
+                }
+            }
         },
         add: function(elements) {
             var self = this;
